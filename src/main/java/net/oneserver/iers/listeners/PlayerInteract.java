@@ -1,6 +1,8 @@
 package net.oneserver.iers.listeners;
 
 import net.oneserver.iers.IERS;
+import net.oneserver.iers.db.Database;
+import net.oneserver.iers.db.SQLQuery;
 import net.oneserver.iers.shop.Shop;
 import net.oneserver.iers.shop.ShopManager;
 
@@ -69,8 +71,17 @@ public class PlayerInteract implements Listener
                     return;
                 }
 
+                if (shop.getStock() <= 0)
+                {
+                    p.sendMessage(ChatColor.RED + "在庫切れです。");
+                    return;
+                }
+
                 p.getInventory().addItem(item);
                 IERS.getPlugin().getOconomyAPI().getMoney().withdraw(p.getUniqueId(), Math.round(shop.getPrice() * 1.05));
+                Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_STOCK_BY_SHOPID, shop.getStock() - 1, shop.getShopId());
+                updateSign(shop.getInfoSign(), 2, "在庫: " + (shop.getStock() - 1));
+                ShopManager.get().getShops().put(shop.getShopId(), ShopManager.get().getShopByShopId(shop.getShopId()));
                 p.sendMessage(ChatColor.GOLD + String.valueOf(Math.round(shop.getPrice() * 1.05)) + "円でアイテムを購入しました。");
                 break;
 
@@ -84,6 +95,9 @@ public class PlayerInteract implements Listener
 
                 p.getInventory().remove(item);
                 IERS.getPlugin().getOconomyAPI().getMoney().deposit(p.getUniqueId(), Math.round(shop.getPrice() / 1.05));
+                Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_STOCK_BY_SHOPID, shop.getStock() + 1, shop.getShopId());
+                updateSign(shop.getInfoSign(), 2, "在庫: " + (shop.getStock() + 1));
+                ShopManager.get().getShops().put(shop.getShopId(), ShopManager.get().getShopByShopId(shop.getShopId()));
                 p.sendMessage(ChatColor.YELLOW + String.valueOf(Math.round(shop.getPrice() / 1.05)) + "円でアイテムを売却しました。");
                 break;
 
@@ -107,5 +121,11 @@ public class PlayerInteract implements Listener
         {
             return type;
         }
+    }
+
+    private void updateSign(Sign sign, int index, String content)
+    {
+        sign.setLine(index, content);
+        sign.update();
     }
 }
