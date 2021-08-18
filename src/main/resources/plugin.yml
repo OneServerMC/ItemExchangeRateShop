@@ -1,0 +1,11 @@
+name: ItemExchangeRateShop
+version: '${project.version}'
+main: net.oneserver.iers.IERS
+api-version: 1.16
+depend:
+  - WorldEdit
+  - Oconomy
+
+commands:
+  iers:
+    description: Main command.
