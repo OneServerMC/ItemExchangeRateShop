@@ -10,12 +10,14 @@ import org.bukkit.block.Block;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class ShopManager
 {
     private static ShopManager instance;
+    private final Map<String, List<Integer>> exchanges = new HashMap<>();
     private Map<String, Shop> shops = new HashMap<>();
 
     public static synchronized ShopManager get()
@@ -133,6 +135,11 @@ public class ShopManager
     public Map<String, Shop> getShops()
     {
         return shops;
+    }
+
+    public Map<String, List<Integer>> getExchanges()
+    {
+        return exchanges;
     }
 
     private Shop getShopFromResultSet(ResultSet rs) throws SQLException

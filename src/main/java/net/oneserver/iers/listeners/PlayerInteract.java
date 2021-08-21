@@ -16,9 +16,11 @@ import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
+
+import java.util.Arrays;
 
 public class PlayerInteract implements Listener
 {
@@ -71,34 +73,123 @@ public class PlayerInteract implements Listener
                     return;
                 }
 
+                if (p.isSneaking() && shop.getStock() < 64)
+                {
+                    p.sendMessage(ChatColor.RED + "在庫が足りません。");
+                    return;
+                }
+
                 if (shop.getStock() <= 0)
                 {
                     p.sendMessage(ChatColor.RED + "在庫切れです。");
                     return;
                 }
 
+                if (p.isSneaking()) item.setAmount(64);
+
                 p.getInventory().addItem(item);
-                IERS.getPlugin().getOconomyAPI().getMoney().withdraw(p.getUniqueId(), Math.round(shop.getPrice() * 1.05));
-                Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_STOCK_BY_SHOPID, shop.getStock() - 1, shop.getShopId());
-                updateSign(shop.getInfoSign(), 2, "在庫: " + (shop.getStock() - 1));
+                IERS.getPlugin().getOconomyAPI().getMoney().withdraw(p.getUniqueId(), Math.round((shop.getPrice() * 1.05) * (p.isSneaking() ? 64 : 1)));
+                Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_STOCK_BY_SHOPID, (shop.getStock() - (p.isSneaking() ? 64 : 1)), shop.getShopId());
+                updateSign(shop.getInfoSign(), 2, "在庫: " + (shop.getStock() - (p.isSneaking() ? 64 : 1)));
                 ShopManager.get().getShops().put(shop.getShopId(), ShopManager.get().getShopByShopId(shop.getShopId()));
-                p.sendMessage(ChatColor.GOLD + String.valueOf(Math.round(shop.getPrice() * 1.05)) + "円でアイテムを購入しました。");
+                p.sendMessage(ChatColor.GOLD + String.valueOf(Math.round((shop.getPrice() * 1.05) * (p.isSneaking() ? 64 : 1))) + "円でアイテムを購入しました。");
+
+                if (!ShopManager.get().getExchanges().containsKey(shop.getShopId()))
+                {
+                    ShopManager.get().getExchanges().put(shop.getShopId(), Arrays.asList(0, 0));
+                    return;
+                }
+
+                ShopManager.get().getExchanges().put(shop.getShopId(), Arrays.asList(ShopManager.get().getExchanges().get(shop.getShopId()).get(0), ShopManager.get().getExchanges().get(shop.getShopId()).get(1) + (p.isSneaking() ? 64 : 1)));
+
+                if (ShopManager.get().getExchanges().get(shop.getShopId()).get(1) >= 192)
+                {
+                    final int difference = ShopManager.get().getExchanges().get(shop.getShopId()).get(1) - 192;
+                    final long price = Math.round(shop.getPrice() + shop.getPrice() * 0.01);
+
+                    updateSign(shop.getInfoSign(), 1, "定価: " + price + "円");
+                    updateSign(shop.getBuySign(), 2, "1個: " + Math.round(price * 1.05) + "円");
+                    updateSign(shop.getSellSign(), 2, "1個: " + Math.round(price / 1.05) + "円");
+                    Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_PRICE_BY_SHOPID, price, shop.getShopId());
+
+                    ShopManager.get().getShops().put(shop.getShopId(), ShopManager.get().getShopByShopId(shop.getShopId()));
+                    ShopManager.get().getExchanges().put(shop.getShopId(), Arrays.asList(ShopManager.get().getExchanges().get(shop.getShopId()).get(0), difference));
+                }
+
                 break;
 
             case SELL:
 
-                if (!p.getInventory().contains(item))
+                ItemStack itemStack = null;
+
+                for (ItemStack i : p.getInventory().getContents())
+                {
+                    if (i != null
+                            && i.getType() == item.getType()
+                            && i.getItemMeta().getDisplayName().equals(item.getItemMeta().getDisplayName())
+                            && (i.getItemMeta().getLore() == null ? "null" : i.getItemMeta().getLore()).equals(item.getItemMeta().getLore() == null ? "null" : item.getItemMeta().getLore())
+                            && i.getItemMeta().getEnchants() == item.getItemMeta().getEnchants()
+                            && ((Damageable) i.getItemMeta()).getDamage() == ((Damageable) item.getItemMeta()).getDamage()
+                    )
+                    {
+                        if (p.isSneaking())
+                        {
+                            if (i.getAmount() >= 64)
+                            {
+                                itemStack = i;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            itemStack = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (itemStack == null && p.isSneaking())
+                {
+                    p.sendMessage(ChatColor.RED + "売却するアイテムの数が足りません。");
+                    return;
+                }
+
+                if (itemStack == null)
                 {
                     p.sendMessage(ChatColor.RED + "売却可能なアイテムを所持していません。");
                     return;
                 }
 
-                p.getInventory().remove(item);
-                IERS.getPlugin().getOconomyAPI().getMoney().deposit(p.getUniqueId(), Math.round(shop.getPrice() / 1.05));
-                Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_STOCK_BY_SHOPID, shop.getStock() + 1, shop.getShopId());
-                updateSign(shop.getInfoSign(), 2, "在庫: " + (shop.getStock() + 1));
+                itemStack.setAmount(itemStack.getAmount() - (p.isSneaking() ? 64 : 1));
+                IERS.getPlugin().getOconomyAPI().getMoney().deposit(p.getUniqueId(), Math.round((p.isSneaking() ? 64 : 1) * shop.getPrice() / 1.05));
+                Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_STOCK_BY_SHOPID,  (shop.getStock() + (p.isSneaking() ? 64 : 1)), shop.getShopId());
+                updateSign(shop.getInfoSign(), 2, "在庫: " + (shop.getStock() + (p.isSneaking() ? 64 : 1)));
                 ShopManager.get().getShops().put(shop.getShopId(), ShopManager.get().getShopByShopId(shop.getShopId()));
-                p.sendMessage(ChatColor.YELLOW + String.valueOf(Math.round(shop.getPrice() / 1.05)) + "円でアイテムを売却しました。");
+                p.sendMessage(ChatColor.YELLOW + String.valueOf(Math.round((p.isSneaking() ? 64 : 1) * shop.getPrice() / 1.05) + "円でアイテムを売却しました。"));
+
+                if (!ShopManager.get().getExchanges().containsKey(shop.getShopId()))
+                {
+                    ShopManager.get().getExchanges().put(shop.getShopId(), Arrays.asList(0, 0));
+                    return;
+                }
+
+                ShopManager.get().getExchanges().put(shop.getShopId(), Arrays.asList(ShopManager.get().getExchanges().get(shop.getShopId()).get(0) + (p.isSneaking() ? 64 : 1), ShopManager.get().getExchanges().get(shop.getShopId()).get(1)));
+
+                if (ShopManager.get().getExchanges().get(shop.getShopId()).get(0) >= 192)
+                {
+                    final int difference = ShopManager.get().getExchanges().get(shop.getShopId()).get(0) - 192;
+
+                    final long price = Math.round(shop.getPrice() - shop.getPrice() * 0.01);
+
+                    updateSign(shop.getInfoSign(), 1, "定価: " + price + "円");
+                    updateSign(shop.getBuySign(), 2, "1個: " + Math.round(price * 1.05) + "円");
+                    updateSign(shop.getSellSign(), 2, "1個: " + Math.round(price / 1.05) + "円");
+                    Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_PRICE_BY_SHOPID, price, shop.getShopId());
+
+                    ShopManager.get().getShops().put(shop.getShopId(), ShopManager.get().getShopByShopId(shop.getShopId()));
+                    ShopManager.get().getExchanges().put(shop.getShopId(), Arrays.asList(difference, ShopManager.get().getExchanges().get(shop.getShopId()).get(1)));
+                }
+
                 break;
 
         }

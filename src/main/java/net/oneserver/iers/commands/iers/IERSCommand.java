@@ -48,6 +48,7 @@ public class IERSCommand implements CommandExecutor, TabExecutor
     {
         HELP(new Help()),
         CREATE(new Create()),
+        DELETE(new Delete()),
         SET(new Create()),
         SETPRICE(new SetPrice()),
         SETNAME(new SetName()),
