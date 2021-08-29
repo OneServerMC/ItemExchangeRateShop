@@ -5,7 +5,10 @@ import net.oneserver.iers.converter.LocationStringConverter;
 import net.oneserver.iers.db.Database;
 import net.oneserver.iers.db.SQLQuery;
 import net.oneserver.iers.util.Utils;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,6 +26,18 @@ public class ShopManager
     public static synchronized ShopManager get()
     {
         return instance == null ? instance = new ShopManager() : instance;
+    }
+
+    public String setName(Shop shop, String name)
+    {
+        Database.get().executeStatement(SQLQuery.UPDATE_SHOP_FROM_NAME_BY_SHOPID, name, shop.getShopId());
+
+        updateSign(shop.getInfoSign(), 0, name);
+        updateSign(shop.getBuySign(), 0, name);
+        updateSign(shop.getSellSign(), 0, name);
+
+        shops.put(shop.getShopId(), getShopByShopId(shop.getName()));
+        return name;
     }
 
     public Optional<Shop> loadShop(String id)
@@ -58,7 +73,9 @@ public class ShopManager
 
         try (ResultSet rs = Database.get().executeResultStatement(SQLQuery.SELECT_SHOP_ALL))
         {
-            while (rs.next()) ptMap.put(rs.getString("shopId"), getShopFromResultSet(rs));
+            while (rs.next())
+                if (Bukkit.getWorlds().contains(getShopFromResultSet(rs).getInfoSign().getWorld()))
+                    ptMap.put(rs.getString("shopId"), getShopFromResultSet(rs));
         }
         catch (SQLException ex)
         {
@@ -155,5 +172,11 @@ public class ShopManager
                 LocationStringConverter.fromString(rs.getString("sell_sign")).getBlock(),
                 rs.getInt("id")
         );
+    }
+
+    private void updateSign(Sign sign, int index, String content)
+    {
+        sign.setLine(index, content);
+        sign.update();
     }
 }

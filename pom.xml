@@ -6,7 +6,7 @@
 
     <groupId>net.oneserver</groupId>
     <artifactId>ItemExchangeRateShop</artifactId>
-    <version>1.0</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
 
     <name>ItemExchangeRateShop</name>
@@ -68,6 +68,18 @@
             <id>sk89q-snapshots</id>
             <url>http://maven.sk89q.com/artifactory/repo</url>
         </repository>
+
+        <!-- Github -->
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+
+        <!-- AnvilGUI -->
+        <repository>
+            <id>codemc-snapshots</id>
+            <url>https://repo.codemc.io/repository/maven-snapshots/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -113,6 +125,21 @@
             <artifactId>worldedit-bukkit</artifactId>
             <version>7.3.0-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- SmartInvsR -->
+        <dependency>
+            <groupId>dev.m1n1don</groupId>
+            <artifactId>SmartInvsR</artifactId>
+            <version>1.1</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <!-- AnvilGUI -->
+        <dependency>
+            <groupId>net.wesjd</groupId>
+            <artifactId>anvilgui</artifactId>
+            <version>1.5.3-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

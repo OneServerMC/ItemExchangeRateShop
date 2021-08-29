@@ -52,7 +52,8 @@ public class IERSCommand implements CommandExecutor, TabExecutor
         SET(new Create()),
         SETPRICE(new SetPrice()),
         SETNAME(new SetName()),
-        SETSTOCK(new SetStock());
+        SETSTOCK(new SetStock()),
+        LIST(new net.oneserver.iers.commands.iers.subs.List());
 
         private final ISubCommand subCommand;
 

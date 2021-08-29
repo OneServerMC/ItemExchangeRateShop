@@ -8,6 +8,7 @@ import net.oneserver.iers.shop.ShopManager;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
@@ -19,6 +20,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.Arrays;
 
@@ -30,6 +32,7 @@ public class PlayerInteract implements Listener
     {
         final Player p = e.getPlayer();
 
+        if (e.getClickedBlock() == null) return;
         if (!e.getClickedBlock().getType().name().contains("SIGN")) return;
 
         final Block block = e.getClickedBlock();
@@ -148,15 +151,17 @@ public class PlayerInteract implements Listener
                     }
                 }
 
-                if (itemStack == null && p.isSneaking())
+                if (itemStack == null)
                 {
-                    p.sendMessage(ChatColor.RED + "売却するアイテムの数が足りません。");
+                    String error = ChatColor.RED + "売却可能なアイテムを所持していません。";
+                    if (p.isSneaking()) error = ChatColor.RED + "売却するアイテムの数が足りません。";
+                    p.sendMessage(error);
                     return;
                 }
 
-                if (itemStack == null)
+                if (itemStack.getType() == Material.PLAYER_HEAD && !((SkullMeta) itemStack.getItemMeta()).getOwner().equals(((SkullMeta) item.getItemMeta()).getOwner()))
                 {
-                    p.sendMessage(ChatColor.RED + "売却可能なアイテムを所持していません。");
+                    p.sendMessage(ChatColor.RED + "");
                     return;
                 }
 

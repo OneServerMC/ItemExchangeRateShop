@@ -1,5 +1,6 @@
 package net.oneserver.iers;
 
+import dev.m1n1don.smartinvsr.inv.InventoryManager;
 import net.oneserver.iers.command.Command;
 import net.oneserver.iers.commands.iers.IERSCommand;
 import net.oneserver.iers.db.Database;
@@ -13,6 +14,7 @@ public class IERS extends AbstractIERS
 {
     private static IERS plugin;
 
+    private InventoryManager invManager;
     private OconomyAPI oconomy;
 
     @Override
@@ -24,6 +26,9 @@ public class IERS extends AbstractIERS
         Database.get().setup();
 
         ShopManager.get().loadShops();
+
+        invManager = new InventoryManager(this);
+        invManager.init();
 
         registerListeners(
                 new PlayerInteract()
@@ -50,4 +55,8 @@ public class IERS extends AbstractIERS
         return oconomy;
     }
 
+    public InventoryManager getInvManager()
+    {
+        return invManager;
+    }
 }
